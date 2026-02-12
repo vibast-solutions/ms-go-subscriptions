@@ -51,10 +51,10 @@ make build-all
 ./build/subscriptions-service cancel pending-payment
 ./build/subscriptions-service cancel expired
 
-# Worker mode (per command)
-./build/subscriptions-service renew --worker
-./build/subscriptions-service cancel pending-payment --worker
-./build/subscriptions-service cancel expired --worker
+# Worker mode (global flag)
+./build/subscriptions-service --worker renew
+./build/subscriptions-service --worker cancel pending-payment
+./build/subscriptions-service --worker cancel expired
 ```
 
 Or directly:
@@ -64,9 +64,9 @@ go run main.go serve
 go run main.go renew
 go run main.go cancel pending-payment
 go run main.go cancel expired
-go run main.go renew --worker
-go run main.go cancel pending-payment --worker
-go run main.go cancel expired --worker
+go run main.go --worker renew
+go run main.go --worker cancel pending-payment
+go run main.go --worker cancel expired
 ```
 
 ## CLI Commands
@@ -90,15 +90,15 @@ Commands:
 - `renew`
   - Runs one auto-renewal batch once.
   - Finds due active subscriptions with `auto_renew=1`, attempts renewal payment, and updates status/dates.
-  - `renew --worker` runs the same job continuously using `AUTO_RENEW_INTERVAL_MINUTES`.
+  - `--worker renew` runs the same job continuously using `AUTO_RENEW_INTERVAL_MINUTES`.
 - `cancel pending-payment`
   - Runs one cleanup batch for stale pending payments.
   - Moves timed-out `pending_payment` subscriptions back to `processing` so they can retry.
-  - `cancel pending-payment --worker` runs continuously using `PENDING_CLEANUP_INTERVAL_MINUTES`.
+  - `--worker cancel pending-payment` runs continuously using `PENDING_CLEANUP_INTERVAL_MINUTES`.
 - `cancel expired`
   - Runs one expiration batch.
   - Marks active subscriptions whose `end_at` passed as inactive.
-  - `cancel expired --worker` runs continuously using `EXPIRATION_CHECK_INTERVAL_MINUTES`.
+  - `--worker cancel expired` runs continuously using `EXPIRATION_CHECK_INTERVAL_MINUTES`.
 - `version`
   - Prints service version/build information.
 

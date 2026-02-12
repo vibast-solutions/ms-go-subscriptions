@@ -19,9 +19,7 @@ import (
 )
 
 var (
-	renewWorker         bool
-	cancelPendingWorker bool
-	cancelExpiredWorker bool
+	workerMode bool
 )
 
 var renewCmd = &cobra.Command{
@@ -30,7 +28,6 @@ var renewCmd = &cobra.Command{
 	Run: func(_ *cobra.Command, _ []string) {
 		runCommand(
 			"renew",
-			renewWorker,
 			func(cfg *config.Config) time.Duration { return cfg.Jobs.AutoRenewInterval },
 			func(s *service.SubscriptionService, ctx context.Context) error {
 				return s.RunAutoRenewalBatch(ctx)
@@ -50,7 +47,6 @@ var cancelPendingPaymentCmd = &cobra.Command{
 	Run: func(_ *cobra.Command, _ []string) {
 		runCommand(
 			"cancel_pending_payment",
-			cancelPendingWorker,
 			func(cfg *config.Config) time.Duration { return cfg.Jobs.PendingCleanupInterval },
 			func(s *service.SubscriptionService, ctx context.Context) error {
 				return s.RunPendingPaymentCleanupBatch(ctx)
@@ -65,7 +61,6 @@ var cancelExpiredCmd = &cobra.Command{
 	Run: func(_ *cobra.Command, _ []string) {
 		runCommand(
 			"cancel_expired",
-			cancelExpiredWorker,
 			func(cfg *config.Config) time.Duration { return cfg.Jobs.ExpirationCheckInterval },
 			func(s *service.SubscriptionService, ctx context.Context) error {
 				return s.RunExpirationBatch(ctx)
@@ -80,21 +75,18 @@ func init() {
 	cancelCmd.AddCommand(cancelPendingPaymentCmd)
 	cancelCmd.AddCommand(cancelExpiredCmd)
 
-	renewCmd.Flags().BoolVar(&renewWorker, "worker", false, "Run continuously using configured interval")
-	cancelPendingPaymentCmd.Flags().BoolVar(&cancelPendingWorker, "worker", false, "Run continuously using configured interval")
-	cancelExpiredCmd.Flags().BoolVar(&cancelExpiredWorker, "worker", false, "Run continuously using configured interval")
+	rootCmd.PersistentFlags().BoolVar(&workerMode, "worker", false, "Run continuously using configured interval")
 }
 
 func runCommand(
 	name string,
-	worker bool,
 	intervalResolver func(cfg *config.Config) time.Duration,
 	fn func(s *service.SubscriptionService, ctx context.Context) error,
 ) {
 	cfg, subscriptionService, cleanup := mustCreateSubscriptionService()
 	defer cleanup()
 
-	if worker {
+	if workerMode {
 		runWorker(name, intervalResolver(cfg), subscriptionService, fn)
 		return
 	}

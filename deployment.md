@@ -4,13 +4,13 @@
 
 Processes:
 - API process: `subscriptions-service serve`
-- Renewal process: `subscriptions-service renew` (or `subscriptions-service renew --worker`)
-- Pending payment cancellation process: `subscriptions-service cancel pending-payment` (or `--worker`)
-- Expired subscription cancellation process: `subscriptions-service cancel expired` (or `--worker`)
+- Renewal process: `subscriptions-service renew` (or `subscriptions-service --worker renew`)
+- Pending payment cancellation process: `subscriptions-service cancel pending-payment` (or `subscriptions-service --worker cancel pending-payment`)
+- Expired subscription cancellation process: `subscriptions-service cancel expired` (or `subscriptions-service --worker cancel expired`)
 
 Protocols:
 - HTTP + gRPC (API process)
-- In-process cron-like loops (worker mode via `--worker`)
+- In-process cron-like loops (worker mode via global `--worker` flag)
 
 Default ports:
 - HTTP: `8080`

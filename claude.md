@@ -77,9 +77,9 @@ subscriptions/
 ## Commands
 - `subscriptions serve`
 - `subscriptions renew`
-- `subscriptions renew --worker`
+- `subscriptions --worker renew`
 - `subscriptions cancel pending-payment`
-- `subscriptions cancel pending-payment --worker`
+- `subscriptions --worker cancel pending-payment`
 - `subscriptions cancel expired`
-- `subscriptions cancel expired --worker`
+- `subscriptions --worker cancel expired`
 - `subscriptions version`
