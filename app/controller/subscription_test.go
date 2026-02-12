@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -117,8 +116,9 @@ func newControllerForTest(repo *controllerSubRepo, stRepo *controllerSubTypeRepo
 		MaxRenewalRetryAgeMinutes:   2 * time.Hour,
 		PendingPaymentTimeout:       5 * time.Minute,
 	}
-	svc := service.NewSubscriptionService(repo, stRepo, planRepo, paySvc, cfg)
-	return NewSubscriptionController(svc)
+	subscriptionSvc := service.NewSubscriptionService(repo, stRepo, planRepo, paySvc, cfg)
+	paymentCallbackSvc := service.NewPaymentCallbackService(repo, cfg)
+	return NewSubscriptionController(subscriptionSvc, paymentCallbackSvc)
 }
 
 func TestCreateSubscriptionBadBody(t *testing.T) {
@@ -181,11 +181,15 @@ func TestCreateSubscriptionSuccess(t *testing.T) {
 		t.Fatalf("expected 201, got %d body=%s", rec.Code, rec.Body.String())
 	}
 
-	var payload map[string]any
+	var payload struct {
+		Subscription struct {
+			ID uint64 `json:"id"`
+		} `json:"subscription"`
+	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("unmarshal failed: %v", err)
 	}
-	if payload["subscription"] == nil {
+	if payload.Subscription.ID == 0 {
 		t.Fatalf("expected subscription payload, got %s", rec.Body.String())
 	}
 }
@@ -255,9 +259,9 @@ func TestListSubscriptionTypesInvalidStatus(t *testing.T) {
 	}
 }
 
-func TestPaymentCallbackServerError(t *testing.T) {
+func TestPaymentCallbackNotFound(t *testing.T) {
 	ctrl := newControllerForTest(
-		&controllerSubRepo{findByIDFn: func(context.Context, uint64) (*entity.Subscription, error) { return nil, errors.New("db down") }},
+		&controllerSubRepo{findByIDFn: func(context.Context, uint64) (*entity.Subscription, error) { return nil, nil }},
 		&controllerSubTypeRepo{}, &controllerPlanTypeRepo{}, &controllerPaymentService{},
 	)
 	e := echo.New()
@@ -267,7 +271,7 @@ func TestPaymentCallbackServerError(t *testing.T) {
 	ctx := e.NewContext(req, rec)
 
 	_ = ctrl.PaymentCallback(ctx)
-	if rec.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", rec.Code)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
 	}
 }

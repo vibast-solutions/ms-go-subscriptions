@@ -23,10 +23,6 @@ func NewSubscriptionRepository(db DBTX) *SubscriptionRepository {
 	return &SubscriptionRepository{db: db}
 }
 
-func (r *SubscriptionRepository) WithTx(tx *sql.Tx) *SubscriptionRepository {
-	return &SubscriptionRepository{db: tx}
-}
-
 func (r *SubscriptionRepository) Create(ctx context.Context, subscription *entity.Subscription) error {
 	query := `
 		INSERT INTO subscriptions (

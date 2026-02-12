@@ -46,16 +46,61 @@ make build-all
 # Start HTTP + gRPC API
 ./build/subscriptions-service serve
 
-# Start background jobs process
-./build/subscriptions-service jobs
+# One-off commands
+./build/subscriptions-service renew
+./build/subscriptions-service cancel pending-payment
+./build/subscriptions-service cancel expired
+
+# Worker mode (per command)
+./build/subscriptions-service renew --worker
+./build/subscriptions-service cancel pending-payment --worker
+./build/subscriptions-service cancel expired --worker
 ```
 
 Or directly:
 
 ```bash
 go run main.go serve
-go run main.go jobs
+go run main.go renew
+go run main.go cancel pending-payment
+go run main.go cancel expired
+go run main.go renew --worker
+go run main.go cancel pending-payment --worker
+go run main.go cancel expired --worker
 ```
+
+## CLI Commands
+
+Use the built binary:
+
+```bash
+./build/subscriptions-service <command>
+```
+
+Or with `go run`:
+
+```bash
+go run main.go <command>
+```
+
+Commands:
+
+- `serve`
+  - Starts the HTTP and gRPC API servers.
+- `renew`
+  - Runs one auto-renewal batch once.
+  - Finds due active subscriptions with `auto_renew=1`, attempts renewal payment, and updates status/dates.
+  - `renew --worker` runs the same job continuously using `AUTO_RENEW_INTERVAL_MINUTES`.
+- `cancel pending-payment`
+  - Runs one cleanup batch for stale pending payments.
+  - Moves timed-out `pending_payment` subscriptions back to `processing` so they can retry.
+  - `cancel pending-payment --worker` runs continuously using `PENDING_CLEANUP_INTERVAL_MINUTES`.
+- `cancel expired`
+  - Runs one expiration batch.
+  - Marks active subscriptions whose `end_at` passed as inactive.
+  - `cancel expired --worker` runs continuously using `EXPIRATION_CHECK_INTERVAL_MINUTES`.
+- `version`
+  - Prints service version/build information.
 
 ## Configuration
 
@@ -82,6 +127,8 @@ go run main.go jobs
 | `EXPIRATION_CHECK_INTERVAL_MINUTES` | `60` | Expiration job interval |
 
 ## HTTP API
+
+HTTP and gRPC both call the same service layer. HTTP binds input into protobuf-generated request models and returns protobuf-generated response models as JSON.
 
 - `GET /subscription-types?status=10&type=plan`
 - `POST /subscriptions`

@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
+	SubscriptionsService_Health_FullMethodName                = "/subscriptions.SubscriptionsService/Health"
 	SubscriptionsService_ListSubscriptionTypes_FullMethodName = "/subscriptions.SubscriptionsService/ListSubscriptionTypes"
 	SubscriptionsService_CreateSubscription_FullMethodName    = "/subscriptions.SubscriptionsService/CreateSubscription"
 	SubscriptionsService_GetSubscription_FullMethodName       = "/subscriptions.SubscriptionsService/GetSubscription"
@@ -33,6 +34,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SubscriptionsServiceClient interface {
+	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
 	ListSubscriptionTypes(ctx context.Context, in *ListSubscriptionTypesRequest, opts ...grpc.CallOption) (*ListSubscriptionTypesResponse, error)
 	CreateSubscription(ctx context.Context, in *CreateSubscriptionRequest, opts ...grpc.CallOption) (*CreateSubscriptionResponse, error)
 	GetSubscription(ctx context.Context, in *GetSubscriptionRequest, opts ...grpc.CallOption) (*SubscriptionEnvelopeResponse, error)
@@ -49,6 +51,15 @@ type subscriptionsServiceClient struct {
 
 func NewSubscriptionsServiceClient(cc grpc.ClientConnInterface) SubscriptionsServiceClient {
 	return &subscriptionsServiceClient{cc}
+}
+
+func (c *subscriptionsServiceClient) Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error) {
+	out := new(HealthResponse)
+	err := c.cc.Invoke(ctx, SubscriptionsService_Health_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *subscriptionsServiceClient) ListSubscriptionTypes(ctx context.Context, in *ListSubscriptionTypesRequest, opts ...grpc.CallOption) (*ListSubscriptionTypesResponse, error) {
@@ -127,6 +138,7 @@ func (c *subscriptionsServiceClient) PaymentCallback(ctx context.Context, in *Pa
 // All implementations must embed UnimplementedSubscriptionsServiceServer
 // for forward compatibility
 type SubscriptionsServiceServer interface {
+	Health(context.Context, *HealthRequest) (*HealthResponse, error)
 	ListSubscriptionTypes(context.Context, *ListSubscriptionTypesRequest) (*ListSubscriptionTypesResponse, error)
 	CreateSubscription(context.Context, *CreateSubscriptionRequest) (*CreateSubscriptionResponse, error)
 	GetSubscription(context.Context, *GetSubscriptionRequest) (*SubscriptionEnvelopeResponse, error)
@@ -142,6 +154,9 @@ type SubscriptionsServiceServer interface {
 type UnimplementedSubscriptionsServiceServer struct {
 }
 
+func (UnimplementedSubscriptionsServiceServer) Health(context.Context, *HealthRequest) (*HealthResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Health not implemented")
+}
 func (UnimplementedSubscriptionsServiceServer) ListSubscriptionTypes(context.Context, *ListSubscriptionTypesRequest) (*ListSubscriptionTypesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSubscriptionTypes not implemented")
 }
@@ -177,6 +192,24 @@ type UnsafeSubscriptionsServiceServer interface {
 
 func RegisterSubscriptionsServiceServer(s grpc.ServiceRegistrar, srv SubscriptionsServiceServer) {
 	s.RegisterService(&SubscriptionsService_ServiceDesc, srv)
+}
+
+func _SubscriptionsService_Health_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SubscriptionsServiceServer).Health(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SubscriptionsService_Health_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SubscriptionsServiceServer).Health(ctx, req.(*HealthRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _SubscriptionsService_ListSubscriptionTypes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -330,6 +363,10 @@ var SubscriptionsService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "subscriptions.SubscriptionsService",
 	HandlerType: (*SubscriptionsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Health",
+			Handler:    _SubscriptionsService_Health_Handler,
+		},
 		{
 			MethodName: "ListSubscriptionTypes",
 			Handler:    _SubscriptionsService_ListSubscriptionTypes_Handler,

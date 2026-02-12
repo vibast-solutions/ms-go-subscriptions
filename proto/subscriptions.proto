@@ -5,6 +5,7 @@ package subscriptions;
 option go_package = "github.com/vibast-solutions/ms-go-subscriptions/app/types;types";
 
 service SubscriptionsService {
+  rpc Health(HealthRequest) returns (HealthResponse);
   rpc ListSubscriptionTypes(ListSubscriptionTypesRequest) returns (ListSubscriptionTypesResponse);
   rpc CreateSubscription(CreateSubscriptionRequest) returns (CreateSubscriptionResponse);
   rpc GetSubscription(GetSubscriptionRequest) returns (SubscriptionEnvelopeResponse);
@@ -13,6 +14,12 @@ service SubscriptionsService {
   rpc DeleteSubscription(DeleteSubscriptionRequest) returns (MessageResponse);
   rpc CancelSubscription(CancelSubscriptionRequest) returns (MessageResponse);
   rpc PaymentCallback(PaymentCallbackRequest) returns (MessageResponse);
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
 }
 
 message ListSubscriptionTypesRequest {
@@ -103,4 +110,8 @@ message PaymentCallbackRequest {
 message MessageResponse {
   string message = 1;
   Subscription subscription = 2;
+}
+
+message ErrorResponse {
+  string error = 1;
 }

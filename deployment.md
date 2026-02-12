@@ -4,11 +4,13 @@
 
 Processes:
 - API process: `subscriptions-service serve`
-- Jobs process: `subscriptions-service jobs`
+- Renewal process: `subscriptions-service renew` (or `subscriptions-service renew --worker`)
+- Pending payment cancellation process: `subscriptions-service cancel pending-payment` (or `--worker`)
+- Expired subscription cancellation process: `subscriptions-service cancel expired` (or `--worker`)
 
 Protocols:
 - HTTP + gRPC (API process)
-- In-process cron-like loops (jobs process)
+- In-process cron-like loops (worker mode via `--worker`)
 
 Default ports:
 - HTTP: `8080`
@@ -99,7 +101,7 @@ CREATE TABLE subscriptions (
 
 ## Operational Notes
 
-- Keep API and jobs as separate deploy units for independent scaling.
+- Keep API and command workers as separate deploy units for independent scaling.
 - Service expects callers to provide identity context (`user_id` and/or `email`).
 - Payment service is currently a stub that panics with:
   - `payments for renewals are not implemented`

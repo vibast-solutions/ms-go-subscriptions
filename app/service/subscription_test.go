@@ -455,21 +455,16 @@ func TestDeleteSubscriptionSoftDeletes(t *testing.T) {
 
 func TestPaymentCallbackFailedSetsRetry(t *testing.T) {
 	var updated *entity.Subscription
-	svc := NewSubscriptionService(
-		&mockSubscriptionRepo{
-			findByIDFn: func(_ context.Context, _ uint64) (*entity.Subscription, error) {
-				return &entity.Subscription{ID: 4, Status: entity.SubscriptionStatusPendingPayment}, nil
-			},
-			updateFn: func(_ context.Context, subscription *entity.Subscription) error {
-				updated = copySubscription(subscription)
-				return nil
-			},
+	repo := &mockSubscriptionRepo{
+		findByIDFn: func(_ context.Context, _ uint64) (*entity.Subscription, error) {
+			return &entity.Subscription{ID: 4, Status: entity.SubscriptionStatusPendingPayment}, nil
 		},
-		&mockSubscriptionTypeRepo{},
-		&mockPlanTypeRepo{},
-		&fakePaymentService{},
-		testConfig(),
-	)
+		updateFn: func(_ context.Context, subscription *entity.Subscription) error {
+			updated = copySubscription(subscription)
+			return nil
+		},
+	}
+	svc := NewPaymentCallbackService(repo, testConfig())
 
 	err := svc.PaymentCallback(context.Background(), &types.PaymentCallbackRequest{SubscriptionId: 4, Status: "failed", TransactionId: "tx-1"})
 	if err != nil {

@@ -116,7 +116,8 @@ func newGRPCServerForTest(repo *grpcSubRepo, stRepo *grpcSubTypeRepo, planRepo *
 		PendingPaymentTimeout:       5 * time.Minute,
 	}
 	svc := service.NewSubscriptionService(repo, stRepo, planRepo, pay, cfg)
-	return NewServer(svc)
+	paymentCallbackSvc := service.NewPaymentCallbackService(repo, cfg)
+	return NewServer(svc, paymentCallbackSvc)
 }
 
 func TestCreateSubscriptionInvalidArgument(t *testing.T) {

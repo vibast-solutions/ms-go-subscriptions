@@ -40,12 +40,6 @@ type listSubscriptionsRequest interface {
 	GetEmail() string
 }
 
-type paymentCallbackRequest interface {
-	GetSubscriptionId() uint64
-	GetStatus() string
-	GetTransactionId() string
-}
-
 type CreateResult struct {
 	Subscription *entity.Subscription
 	PaymentURL   string
@@ -333,38 +327,6 @@ func (s *SubscriptionService) CancelSubscription(ctx context.Context, id uint64)
 	}
 
 	return subscription, nil
-}
-
-func (s *SubscriptionService) PaymentCallback(ctx context.Context, req paymentCallbackRequest) error {
-	subscription, err := s.subscriptionRepo.FindByID(ctx, req.GetSubscriptionId())
-	if err != nil {
-		return err
-	}
-	if subscription == nil {
-		return ErrSubscriptionNotFound
-	}
-
-	now := time.Now().UTC()
-	switch strings.ToLower(strings.TrimSpace(req.GetStatus())) {
-	case "success":
-		subscription.Status = entity.SubscriptionStatusActive
-	case "failed":
-		subscription.Status = entity.SubscriptionStatusProcessing
-		renewAt := now.Add(s.cfg.RenewalRetryIntervalMinutes)
-		subscription.RenewAt = &renewAt
-	default:
-		return fmt.Errorf("%w: invalid callback status", ErrInvalidRequest)
-	}
-	subscription.UpdatedAt = now
-
-	if err := s.subscriptionRepo.Update(ctx, subscription); err != nil {
-		if errors.Is(err, repository.ErrSubscriptionNotFound) {
-			return ErrSubscriptionNotFound
-		}
-		return err
-	}
-
-	return nil
 }
 
 func (s *SubscriptionService) RunAutoRenewalBatch(ctx context.Context) error {

@@ -19,10 +19,6 @@ func NewSubscriptionTypeRepository(db DBTX) *SubscriptionTypeRepository {
 	return &SubscriptionTypeRepository{db: db}
 }
 
-func (r *SubscriptionTypeRepository) WithTx(tx *sql.Tx) *SubscriptionTypeRepository {
-	return &SubscriptionTypeRepository{db: tx}
-}
-
 func (r *SubscriptionTypeRepository) List(ctx context.Context, typeFilter string, hasStatus bool, status int32) ([]*entity.SubscriptionType, error) {
 	query := `
 		SELECT id, type, display_name, status, created_at, updated_at

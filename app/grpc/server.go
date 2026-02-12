@@ -3,22 +3,33 @@ package grpc
 import (
 	"context"
 	"errors"
-	"time"
 
-	"github.com/vibast-solutions/ms-go-subscriptions/app/entity"
+	"github.com/vibast-solutions/ms-go-subscriptions/app/mapper"
 	"github.com/vibast-solutions/ms-go-subscriptions/app/service"
 	"github.com/vibast-solutions/ms-go-subscriptions/app/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type Server struct {
-	types.UnimplementedSubscriptionsServiceServer
-	subscriptionService *service.SubscriptionService
+type paymentCallbackService interface {
+	PaymentCallback(ctx context.Context, req *types.PaymentCallbackRequest) error
 }
 
-func NewServer(subscriptionService *service.SubscriptionService) *Server {
-	return &Server{subscriptionService: subscriptionService}
+type Server struct {
+	types.UnimplementedSubscriptionsServiceServer
+	subscriptionService    *service.SubscriptionService
+	paymentCallbackService paymentCallbackService
+}
+
+func NewServer(subscriptionService *service.SubscriptionService, paymentCallbackService paymentCallbackService) *Server {
+	return &Server{
+		subscriptionService:    subscriptionService,
+		paymentCallbackService: paymentCallbackService,
+	}
+}
+
+func (s *Server) Health(_ context.Context, _ *types.HealthRequest) (*types.HealthResponse, error) {
+	return &types.HealthResponse{Status: "ok"}, nil
 }
 
 func (s *Server) ListSubscriptionTypes(ctx context.Context, req *types.ListSubscriptionTypesRequest) (*types.ListSubscriptionTypesResponse, error) {
@@ -37,18 +48,9 @@ func (s *Server) ListSubscriptionTypes(ctx context.Context, req *types.ListSubsc
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
-	resp := &types.ListSubscriptionTypesResponse{SubscriptionTypes: make([]*types.SubscriptionType, 0, len(items))}
-	for _, item := range items {
-		resp.SubscriptionTypes = append(resp.SubscriptionTypes, &types.SubscriptionType{
-			Id:          item.ID,
-			Type:        item.Type,
-			DisplayName: item.DisplayName,
-			Status:      item.Status,
-			CreatedAt:   item.CreatedAt.UTC().Format(time.RFC3339),
-			UpdatedAt:   item.UpdatedAt.UTC().Format(time.RFC3339),
-		})
-	}
-	return resp, nil
+	return &types.ListSubscriptionTypesResponse{
+		SubscriptionTypes: mapper.SubscriptionTypesToProto(items),
+	}, nil
 }
 
 func (s *Server) CreateSubscription(ctx context.Context, req *types.CreateSubscriptionRequest) (*types.CreateSubscriptionResponse, error) {
@@ -73,7 +75,7 @@ func (s *Server) CreateSubscription(ctx context.Context, req *types.CreateSubscr
 	}
 
 	return &types.CreateSubscriptionResponse{
-		Subscription: toGRPCSubscription(result.Subscription),
+		Subscription: mapper.SubscriptionToProto(result.Subscription),
 		PaymentUrl:   result.PaymentURL,
 	}, nil
 }
@@ -91,7 +93,7 @@ func (s *Server) GetSubscription(ctx context.Context, req *types.GetSubscription
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
-	return &types.SubscriptionEnvelopeResponse{Subscription: toGRPCSubscription(item)}, nil
+	return &types.SubscriptionEnvelopeResponse{Subscription: mapper.SubscriptionToProto(item)}, nil
 }
 
 func (s *Server) ListSubscriptions(ctx context.Context, req *types.ListSubscriptionsRequest) (*types.ListSubscriptionsResponse, error) {
@@ -104,11 +106,9 @@ func (s *Server) ListSubscriptions(ctx context.Context, req *types.ListSubscript
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
-	resp := &types.ListSubscriptionsResponse{Subscriptions: make([]*types.Subscription, 0, len(items))}
-	for _, item := range items {
-		resp.Subscriptions = append(resp.Subscriptions, toGRPCSubscription(item))
-	}
-	return resp, nil
+	return &types.ListSubscriptionsResponse{
+		Subscriptions: mapper.SubscriptionsToProto(items),
+	}, nil
 }
 
 func (s *Server) UpdateSubscription(ctx context.Context, req *types.UpdateSubscriptionRequest) (*types.SubscriptionEnvelopeResponse, error) {
@@ -128,7 +128,7 @@ func (s *Server) UpdateSubscription(ctx context.Context, req *types.UpdateSubscr
 		}
 	}
 
-	return &types.SubscriptionEnvelopeResponse{Subscription: toGRPCSubscription(item)}, nil
+	return &types.SubscriptionEnvelopeResponse{Subscription: mapper.SubscriptionToProto(item)}, nil
 }
 
 func (s *Server) DeleteSubscription(ctx context.Context, req *types.DeleteSubscriptionRequest) (*types.MessageResponse, error) {
@@ -144,7 +144,7 @@ func (s *Server) DeleteSubscription(ctx context.Context, req *types.DeleteSubscr
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
-	return &types.MessageResponse{Message: "Subscription deleted successfully", Subscription: toGRPCSubscription(item)}, nil
+	return &types.MessageResponse{Message: "Subscription deleted successfully", Subscription: mapper.SubscriptionToProto(item)}, nil
 }
 
 func (s *Server) CancelSubscription(ctx context.Context, req *types.CancelSubscriptionRequest) (*types.MessageResponse, error) {
@@ -160,7 +160,7 @@ func (s *Server) CancelSubscription(ctx context.Context, req *types.CancelSubscr
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
-	return &types.MessageResponse{Message: "Subscription cancelled successfully", Subscription: toGRPCSubscription(item)}, nil
+	return &types.MessageResponse{Message: "Subscription cancelled successfully", Subscription: mapper.SubscriptionToProto(item)}, nil
 }
 
 func (s *Server) PaymentCallback(ctx context.Context, req *types.PaymentCallbackRequest) (*types.MessageResponse, error) {
@@ -168,7 +168,7 @@ func (s *Server) PaymentCallback(ctx context.Context, req *types.PaymentCallback
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	if err := s.subscriptionService.PaymentCallback(ctx, req); err != nil {
+	if err := s.paymentCallbackService.PaymentCallback(ctx, req); err != nil {
 		switch {
 		case errors.Is(err, service.ErrInvalidRequest):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -180,34 +180,4 @@ func (s *Server) PaymentCallback(ctx context.Context, req *types.PaymentCallback
 	}
 
 	return &types.MessageResponse{Message: "Payment processed successfully"}, nil
-}
-
-func toGRPCSubscription(item *entity.Subscription) *types.Subscription {
-	return &types.Subscription{
-		Id:                 item.ID,
-		SubscriptionTypeId: item.SubscriptionTypeID,
-		UserId:             derefString(item.UserID),
-		Email:              derefString(item.Email),
-		Status:             item.Status,
-		StartAt:            formatTime(item.StartAt),
-		EndAt:              formatTime(item.EndAt),
-		RenewAt:            formatTime(item.RenewAt),
-		AutoRenew:          item.AutoRenew,
-		CreatedAt:          item.CreatedAt.UTC().Format(time.RFC3339),
-		UpdatedAt:          item.UpdatedAt.UTC().Format(time.RFC3339),
-	}
-}
-
-func derefString(v *string) string {
-	if v == nil {
-		return ""
-	}
-	return *v
-}
-
-func formatTime(v *time.Time) string {
-	if v == nil {
-		return ""
-	}
-	return v.UTC().Format(time.RFC3339)
 }

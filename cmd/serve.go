@@ -70,8 +70,9 @@ func runServe(_ *cobra.Command, _ []string) {
 	planTypeRepo := repository.NewPlanTypeRepository(db)
 	paymentService := payment.NewStubService()
 	subscriptionService := service.NewSubscriptionService(subscriptionRepo, subscriptionTypeRepo, planTypeRepo, paymentService, cfg.Subscriptions)
-	subscriptionController := controller.NewSubscriptionController(subscriptionService)
-	grpcSubscriptionServer := grpcserver.NewServer(subscriptionService)
+	paymentCallbackService := service.NewPaymentCallbackService(subscriptionRepo, cfg.Subscriptions)
+	grpcSubscriptionServer := grpcserver.NewServer(subscriptionService, paymentCallbackService)
+	subscriptionController := controller.NewSubscriptionController(subscriptionService, paymentCallbackService)
 
 	authGRPCClient, err := authclient.NewGRPCClientFromAddr(context.Background(), cfg.InternalEndpoints.AuthGRPCAddr)
 	if err != nil {
@@ -162,9 +163,7 @@ func setupHTTPServer(
 	}))
 	e.Use(internalAuthMiddleware.RequireInternalAccess(appServiceName))
 
-	e.GET("/health", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
-	})
+	e.GET("/health", subscriptionController.Health)
 
 	e.GET("/subscription-types", subscriptionController.ListSubscriptionTypes)
 

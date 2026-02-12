@@ -15,10 +15,6 @@ func NewPlanTypeRepository(db DBTX) *PlanTypeRepository {
 	return &PlanTypeRepository{db: db}
 }
 
-func (r *PlanTypeRepository) WithTx(tx *sql.Tx) *PlanTypeRepository {
-	return &PlanTypeRepository{db: tx}
-}
-
 func (r *PlanTypeRepository) FindBySubscriptionTypeID(ctx context.Context, subscriptionTypeID uint64) (*entity.PlanType, error) {
 	query := `
 		SELECT id, subscription_type_id, plan_code, display_name, description,

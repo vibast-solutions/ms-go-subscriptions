@@ -22,7 +22,7 @@ const (
 	defaultSubscriptionsCallerAPIKey   = "subscriptions-caller-key"
 	defaultSubscriptionsNoAccessAPIKey = "subscriptions-no-access-key"
 	defaultSubscriptionsAppAPIKey      = "subscriptions-app-api-key"
-	subscriptionsAuthMockAddr          = "127.0.0.1:38083"
+	subscriptionsAuthMockAddr          = "0.0.0.0:38083"
 )
 
 func subscriptionsCallerAPIKey() string {

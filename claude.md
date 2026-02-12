@@ -37,13 +37,17 @@ subscriptions/
 │   └── subscriptions.proto
 ├── app/
 │   ├── controller/
+│   │   ├── proto.go
 │   │   └── subscription.go
 │   ├── grpc/
 │   │   ├── interceptor.go
 │   │   └── server.go
 │   ├── service/
 │   │   ├── errors.go
+│   │   ├── payment.go
 │   │   └── subscription.go
+│   ├── mapper/
+│   │   └── subscriptions.go
 │   ├── repository/
 │   │   ├── common.go
 │   │   ├── subscription_type.go
@@ -60,9 +64,6 @@ subscriptions/
 │   ├── payment/
 │   │   ├── payment.go
 │   │   └── stub.go
-│   ├── dto/
-│   │   ├── response.go
-│   │   └── subscription.go
 │   └── factory/
 │       └── logger.go
 └── scripts/
@@ -75,5 +76,10 @@ subscriptions/
 
 ## Commands
 - `subscriptions serve`
-- `subscriptions jobs`
+- `subscriptions renew`
+- `subscriptions renew --worker`
+- `subscriptions cancel pending-payment`
+- `subscriptions cancel pending-payment --worker`
+- `subscriptions cancel expired`
+- `subscriptions cancel expired --worker`
 - `subscriptions version`
