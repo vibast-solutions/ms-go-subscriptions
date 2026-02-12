@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package subscriptions;
+
+option go_package = "github.com/vibast-solutions/ms-go-subscriptions/app/types;types";
+
+service SubscriptionsService {
+  rpc ListSubscriptionTypes(ListSubscriptionTypesRequest) returns (ListSubscriptionTypesResponse);
+  rpc CreateSubscription(CreateSubscriptionRequest) returns (CreateSubscriptionResponse);
+  rpc GetSubscription(GetSubscriptionRequest) returns (SubscriptionEnvelopeResponse);
+  rpc ListSubscriptions(ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
+  rpc UpdateSubscription(UpdateSubscriptionRequest) returns (SubscriptionEnvelopeResponse);
+  rpc DeleteSubscription(DeleteSubscriptionRequest) returns (MessageResponse);
+  rpc CancelSubscription(CancelSubscriptionRequest) returns (MessageResponse);
+  rpc PaymentCallback(PaymentCallbackRequest) returns (MessageResponse);
+}
+
+message ListSubscriptionTypesRequest {
+  bool has_status = 1;
+  int32 status = 2;
+  string type = 3;
+}
+
+message SubscriptionType {
+  uint64 id = 1;
+  string type = 2;
+  string display_name = 3;
+  int32 status = 4;
+  string created_at = 5;
+  string updated_at = 6;
+}
+
+message ListSubscriptionTypesResponse {
+  repeated SubscriptionType subscription_types = 1;
+}
+
+message CreateSubscriptionRequest {
+  uint64 subscription_type_id = 1;
+  string user_id = 2;
+  string email = 3;
+  string start_at = 4;
+  bool auto_renew = 5;
+}
+
+message Subscription {
+  uint64 id = 1;
+  uint64 subscription_type_id = 2;
+  string user_id = 3;
+  string email = 4;
+  int32 status = 5;
+  string start_at = 6;
+  string end_at = 7;
+  string renew_at = 8;
+  bool auto_renew = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+
+message CreateSubscriptionResponse {
+  Subscription subscription = 1;
+  string payment_url = 2;
+}
+
+message GetSubscriptionRequest {
+  uint64 id = 1;
+}
+
+message SubscriptionEnvelopeResponse {
+  Subscription subscription = 1;
+}
+
+message ListSubscriptionsRequest {
+  string user_id = 1;
+  string email = 2;
+}
+
+message ListSubscriptionsResponse {
+  repeated Subscription subscriptions = 1;
+}
+
+message UpdateSubscriptionRequest {
+  uint64 id = 1;
+  bool has_auto_renew = 2;
+  bool auto_renew = 3;
+  bool has_status = 4;
+  int32 status = 5;
+}
+
+message DeleteSubscriptionRequest {
+  uint64 id = 1;
+}
+
+message CancelSubscriptionRequest {
+  uint64 id = 1;
+}
+
+message PaymentCallbackRequest {
+  uint64 subscription_id = 1;
+  string status = 2;
+  string transaction_id = 3;
+}
+
+message MessageResponse {
+  string message = 1;
+  Subscription subscription = 2;
+}
